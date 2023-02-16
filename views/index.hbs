@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>App</title>
+  </head>
+  <body>
+    <h1>Boards</h1>
+    {{#if boards}}
+    <ul>
+    {{#each boards }}
+      <li>
+        <p><a href="/board/{{ id }}">{{ name }}</a></p>
+      </li>
+    {{/each}}
+    </ul>
+    {{else}}
+    <p>No boards registered</p>
+    {{/if}}
+
+      <form id="board-form">
+        <p>
+          <label for="name">Name: </label>
+          <input type="text" name="name" id="name" placeholder="reception">
+        </p>
+        <p>
+          <button>Create</button>
+        </p>
+      </form>
+
+      <script type="text/javascript">
+      (function() {
+        "use strict";
+
+        const $ = (s, d = document) => d.querySelector(s);
+
+        let submitting = false;
+        $('#board-form').addEventListener('submit', e => {
+          e.preventDefault();
+          
+          if (submitting) return;
+
+          submitting = true;
+
+          const body = JSON.stringify({ name: $('#name').value });
+
+          fetch('/board', {
+            method: 'post',
+            body,
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          })
+            .then(() => { 
+              window.location.reload()
+            })
+            .catch(e => console.log('Error submiting form:', e))
+            .finally(() => {
+              submitting = false;
+            });
+        })
+      })();
+      </script>
+  </body>
+</html>

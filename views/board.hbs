@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel {{ board.name }}</title>
+    <style>
+        #board-container {
+            display: grid;
+        }
+
+        #visualize-interface {
+            display: grid;
+        }
+    </style>
+</head>
+<body data-board-id="{{board.id}}">
+    <div id="init-state">
+        <h1>{{ board.name }}</h1>
+        <p>
+            <button type="button" id="control" >Controlar</button>
+            <button type="button" id="visualize">Visualizar</button>
+        </p>
+    </div>
+
+    <div id="board-container">
+        <div id="visualize-interface" style="display: none">
+            <div id="current-call">{{ board.current }}</div>
+            <div class="before-call"></div>
+            <div class="before-call"></div>
+            <div class="before-call"></div>
+            <div class="before-call"></div>
+            <div class="before-call"></div>
+        </div>
+        <div id="control-interface" style="display: none">
+            <button type="button" id="call">Chamar</button>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        (function () {
+            "use strict";
+
+            const $ = (s, d = document) => d.querySelector(s);
+            const $$ = (s, d = document) => Array.from(d.querySelectorAll(s));
+            const boardId = $('body').dataset.boardId;
+            let calling = false;
+
+            $('#control').addEventListener('click', e => {
+                e.preventDefault();
+                hideInit();
+                showAll();
+                startListening();
+            });
+
+            $('#visualize').addEventListener('click', e => {
+                e.preventDefault();
+                hideInit();
+                showView();
+                startListening();
+            });
+
+            $('#call').addEventListener('click', e => {
+                e.preventDefault();
+                call();
+            });
+
+            function hideInit() {
+                $('#init-state').style.display = 'none';
+            }
+
+            function showView() {
+                $('#visualize-interface').style.display = 'grid';
+            }
+
+            function showAll() {
+                showView();
+                $('#control-interface').style.display = 'grid';
+            }
+
+            function startListening() {
+                const es = new EventSource('/board/' + boardId + '/events');
+                es.addEventListener('connected', e => {
+                    console.log('Listening to events of board', boardId);
+                })
+                es.addEventListener('call', e => {
+                    const { calledPassword } = JSON.parse(e.data);
+                    updateCurrrentCall(calledPassword);
+                });
+            }
+
+            function call() {
+                if (calling) return;
+
+                calling = true;
+
+                $('#call').disabled = true;
+
+                fetch('/board/' + boardId + '/call', {
+                    method: 'POST'
+                })
+                .finally(() => {
+                    $('#call').disabled = false;
+                    calling = false;
+                });
+            }
+
+            function updateCurrrentCall(calledPassword) {
+                const lastCall = $('#current-call').textContent;
+
+                $('#current-call').textContent = calledPassword;
+
+                let beforeBuffer = null, nextBuffer = lastCall;
+                
+                $$('.before-call').forEach((b) => {
+                    // Using the before-call elements as an queue and shifting
+                    // them to insert the lastCall in front
+                    beforeBuffer = b.textContent;
+                    b.textContent = nextBuffer;
+                    nextBuffer = beforeBuffer;
+                });
+            }
+        })();
+    </script>
+</body>
+</html>
